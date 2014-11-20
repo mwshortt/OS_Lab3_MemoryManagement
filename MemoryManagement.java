@@ -54,8 +54,6 @@ public class MemoryManagement {
 		//the variable that tells us which policy that the system will use
 		int whichPolicy = input.nextInt();
 		
-		System.out.println("memorySize: " + memorySize + " whichPolicy: " + whichPolicy);
-		
 		//the variable that holds which memory management policy the system is using
 		MemoryPolicy policy = null;
 		
