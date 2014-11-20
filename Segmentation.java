@@ -118,7 +118,7 @@ public class Segmentation implements MemoryPolicy{
 			return -1;
 		}
 		
-		//I AM USING THE FIRST FIT ALGORITHM TO FIND A FREE HOLE
+		//I AM USING THE BEST FIT ALGORITHM TO FIND A FREE HOLE
 		
 		//initialize the helper array
 		pHelper = new int[8];

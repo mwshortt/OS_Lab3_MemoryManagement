@@ -1,9 +1,12 @@
 import java.awt.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 /**
  * 
@@ -12,12 +15,12 @@ import java.util.Set;
  */
 public class Paging implements MemoryPolicy {
 
-	 int PAGE_SIZE = 32;
+	 public static int PAGE_SIZE = 32;
 	int pages;
 	int memSize;
 	LinkedList<Integer> freePages;
 	int external_frag = 0;
-	ArrayList<Process> processList = new ArrayList<Process>();
+	Map<Integer, Process> processList = new HashMap<Integer, Process>();
 	//Hashset
 	 // Set<Process> processList;
 	int noMemCount = 0;
@@ -51,9 +54,8 @@ public class Paging implements MemoryPolicy {
 		// you ran into external fragmentation
 		int length = process.pages.length;
 		if (length > freePages.size()) {
-			System.out.print("unsuccessful; insufficient memory");
+			System.out.println("unsuccessful; insufficient memory; Proccess "+pid+" failed");
 			noMemCount++;
-			external_frag++;
 			return -1;
 		}
 
@@ -62,7 +64,7 @@ public class Paging implements MemoryPolicy {
 
 		}
 		//add new process to process list
-		processList.add(process);
+		processList.put(pid, process);
 
 
 		return 1;
@@ -77,14 +79,21 @@ public class Paging implements MemoryPolicy {
 		// get process id
 		// if process id is null, return -1 (unsuccessful)
 		// walk through number of pages and add the free pages to the page at i
-
-		Process process2 = processList.get(pid);
-		if (process2 == null) {
-			System.out.println("Unuccessful; process does not exist");
+		/*System.out.println("Testing process list: ");
+		for(int i = 0; i<processList.size(); i++){
+			processList.get(i).print();
+		}
+		Integer process = new Integer(pid);
+		*/
+		if (!processList.containsKey(pid)) {
+			System.out.println("Unsuccessful; Process "+pid+" does not exist");
 
 			return -1;
 		}
-
+		Process process2 = processList.get(pid);
+		
+		
+		
 		int pages[] = process2.pages;
 		for (int i = 0; i < pages.length; i++) {
 			freePages.add(pages[i]);
@@ -96,27 +105,35 @@ public class Paging implements MemoryPolicy {
 
 	@Override
 	public void printMemoryState() {
-		System.out.println("PAGING EXAMPLE");
+		System.out.println("PAGING");
 
-		System.out.println("From printMemoryState" + memSize + "Total pages: "
+		System.out.println("From printMemoryState: " + memSize + " Total pages: "
 				+ PAGE_SIZE);
-		System.out.println("Allocated pages:" + pages + "Free pages:"
+		System.out.println("Allocated pages: " + (pages - freePages.size()) + " Free pages:"
 				+ freePages.size());
-		System.out.println("There are currently" + processList.size()
-				+ "number of active processes");
-		System.out.println("Free page list:");
+		System.out.println("There are currently " + processList.size()
+				+ " number of active processes");
+		System.out.println("Free page list: ");
+		//System.out.println("Size of free pages: "+freePages.size());
 		Iterator<Integer> iter = freePages.iterator();
-		if (iter.hasNext()) {
-			System.out.println(iter.next());
+		while (iter.hasNext()) {
+			System.out.print(iter.next()+" ");
 
 		}
-		for(int i = 0; i<processList.size(); i++){
-			processList.get(i).print();
+		System.out.println("");
+		System.out.println("Process List:");
+		for(Entry<Integer, Process> entry : processList.entrySet()){
+			entry.getValue().print();
 		}
-
+		//print out internal fragmentation
+				System.out.println("Total internal fragmentation = "+ computeInternalFrag()+" bytes");
+				//print out failed allocation due to no memory
+				System.out.println("Failed allocations due to no memory = "+noMemCount);
+				//print out failed allocations due to external fragmentation 
+				System.out.println("Failed allocations due to external fragmentation = "+external_frag);
 	}
 
-	public int splitMem(int a, int b) {
+	public static int splitMem(int a, int b) {
 
 		if (a % b == 0) {
 			return a / b;
@@ -127,14 +144,13 @@ public class Paging implements MemoryPolicy {
 	}
 	
 	  private int computeInternalFrag(){
-			int internal_frag = 0;
-			for (int i =0; i<processList.size();i++){
-			    internal_frag += processList.get(i).internalFrag();
-			}	
-			    
-			return internal_frag;
-		    }
-	
+		  int internal_frag = 0;
+		  for(Entry<Integer, Process> entry : processList.entrySet()){
+			  entry.getValue().internalFrag();
+		  }
+		  return internal_frag;
+	  }
+
 	}
 
 	/**
@@ -147,7 +163,6 @@ public class Paging implements MemoryPolicy {
 		int process_id;
 		int process_size;
 		int[] pages;
-		Paging paging = new Paging(1024);
 
 		public Process(int process_id, int process_size) {
 			this.process_id = process_id;
@@ -155,26 +170,25 @@ public class Paging implements MemoryPolicy {
 			// split the system memory into a set of fixed size 32 byte pages,
 			// and then allocate pages to each process based on the amount of
 			// memory it needs.
-			int allocate_pages = paging.splitMem(process_size, paging.PAGE_SIZE);
+			int allocate_pages = Paging.splitMem(process_size, Paging.PAGE_SIZE);
 			pages = new int[allocate_pages];
 
 		}
 
 		public void print() {
-			paging.printMemoryState();
-			System.out.println("Process List:");
-			System.out.println("Process id:" + process_id + "size:"
-					+ process_size + "numbere of pages:" + pages.length);
-			int used = paging.PAGE_SIZE;
+			//paging.printMemoryState();
+			System.out.println("Process id: " + process_id + " size: "
+					+ process_size + " number of pages: " + pages.length);
+			int used = Paging.PAGE_SIZE;
 			for (int i = 0; i < pages.length; i++) {
 				if (i == pages.length - 1) {
-					used = process_size % paging.PAGE_SIZE;
+					used = process_size % Paging.PAGE_SIZE;
 					if (used == 0) {
-						used = paging.PAGE_SIZE;
+						used = Paging.PAGE_SIZE;
 					}
 				}
-				System.out.println("Virtual Page ->" + i + "Phys Page"
-						+ pages[i] + "used" + used);
+				System.out.println("Virtual Page ->" + i + " Phys Page "
+						+ pages[i] + " used: " + used);
 			}
 			
 			
@@ -204,10 +218,10 @@ public class Paging implements MemoryPolicy {
 		public int internalFrag(){
 			int internal_frag = 0;
 
-			internal_frag = process_size % paging.PAGE_SIZE;
+			internal_frag = process_size % Paging.PAGE_SIZE;
 		
 			if (internal_frag!=0){ 
-			   internal_frag = paging.PAGE_SIZE-internal_frag;	}
+			   internal_frag = Paging.PAGE_SIZE-internal_frag;	}
 			return internal_frag;
 
 		}
